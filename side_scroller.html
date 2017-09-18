@@ -1,0 +1,161 @@
+<canvas id="gc" width="800" height="400" style="border-radius:25px; " >
+</canvas>
+<script>
+px=50
+py=200;
+pd=30;//size
+ps=10;//speed
+score=0;
+
+drag=false;
+curX=curY=curW=curH=0;
+rects=[{x:350,y:20,w:50,h:100},{x:200,y:250,w:100,h:60},
+{x:420,y:350,w:110,h:30},{x:650,y:90,w:50,h:130}, {x:1020,y:0,w:60,h:140}];
+
+scrolPos=0;
+scrollSpeed=2;
+var myTimer;
+paused=true;
+
+playerC="#F15D58";
+blockC="#25AAA0";
+backC="#DCDDCD";
+texC="#83BF17";
+
+window.onload = function() {
+    var retrievedObject = localStorage.getItem('testObject');
+
+
+    console.log('Value of retrievedObject: ' + retrievedObject);
+    canvas=document.getElementById("gc");
+    context=canvas.getContext("2d");
+    scroll();
+
+    document.addEventListener('keydown',keyPush);
+    canvas.addEventListener('mousedown', mouseDown, false);
+    canvas.addEventListener('mouseup', mouseUp, false);
+    canvas.addEventListener('mousemove', mouseMove, false);
+}
+
+function update() {
+    scrolPos-=scrollSpeed;
+    scroll();
+    score++;
+    context.font = "45px Arial";
+    context.fillStyle=texC;
+    if(score>700){
+        clearInterval(myTimer);    
+        context.fillText("You Win",290,200);
+        paused =true;
+    }
+
+    for(var e=0;e<rects.length;e++) {
+        var tempX=rects[e].x+scrolPos;
+
+        if(px < tempX + rects[e].w &&
+           px + pd > tempX &&
+           py < rects[e].y + rects[e].h &&
+           pd + py > rects[e].y) {
+            clearInterval(myTimer);
+            context.fillText("Game over",290,200);
+            paused =true;
+        }       
+    }
+}
+function save(){
+    localStorage.setItem('testObject', JSON.stringify(rects));
+}
+function load(){
+    rects = JSON.parse(localStorage.getItem('testObject'));
+    console.log('typeof retrievedObject: ' + typeof rects);
+console.log('Value of retrievedObject: ' + rects);
+    scroll();
+}
+function clearS(){
+    rects= [];
+    scroll();
+}
+function restart(){
+    console.log(paused);
+    scrolPos=0;
+    score=0;
+    px=50
+    py=200;
+    if(paused){
+        myTimer=setInterval(update,1000/120);
+        paused = false;
+    }
+}
+function scroll(){
+    context.fillStyle=backC;
+    context.fillRect(0,0,canvas.width,canvas.height);
+    context.fillStyle=playerC;
+    context.fillRect(px,py,pd,pd);
+
+    context.fillStyle=texC;
+    context.font = "15px Arial";
+    context.fillText("Score: "+score,20,20);
+
+    context.fillStyle=blockC;
+    for(var i=0;i<rects.length;i++){
+      context.fillRect(rects[i].x+scrolPos, rects[i].y, rects[i].w, rects[i].h);
+    }
+    
+}
+function draw() {
+    scroll();
+    context.fillRect(curX, curY, curW, curH);
+}
+function keyPush(evt) {
+    switch(evt.keyCode) {
+        case 88:
+            if(paused){
+                myTimer = setInterval(update,1000/120);
+                paused = false;
+            }else{
+                clearInterval(myTimer);
+                paused = true;
+            }
+            break;
+        case 37://left
+            if(!paused)px-=ps
+            scrolPos+=5;
+            scroll();
+            break;
+        case 38://up
+            if(py>0)py-=ps;
+            break;
+        case 39://right
+            if(!paused)px+=ps
+            scrolPos-=5;
+            scroll();
+            break;
+        case 40://down
+            if(py+pd<canvas.height)py+=ps;
+            break;
+    }
+}
+function mouseDown(e) {
+  curX = e.pageX - canvas.offsetLeft;
+  curY = e.pageY - canvas.offsetTop;
+  drag = true;
+}
+function mouseUp() {
+  drag=false;
+  rects.push({x:(curX-scrolPos),y:curY,w:curW,h:curH});
+}
+
+function mouseMove(e) {
+  if (drag) {
+    curW = (e.pageX - canvas.offsetLeft) - curX;
+    curH = (e.pageY - canvas.offsetTop) - curY ;  
+    draw();
+
+  }
+}
+
+</script><br>
+<input type="button" value="  Restart  " onclick="restart()">
+<input type="button" value="   clear   " onclick="clearS()">
+<input type="button" value="    Save    " onclick="save()">
+<input type="button" value="    load    " onclick="load()">
