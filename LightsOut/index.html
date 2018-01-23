@@ -1,0 +1,274 @@
+<style>
+/* The Modal (background) */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1; 
+    padding-top: 15vh; 
+    left: 0;
+    top: 0;
+    bottom:0;
+    right:0;
+    background-color: rgba(0,0,0,0.6); 
+}
+.modal-content {
+    margin: auto;
+    width:35vh;
+    line-height:2em;
+    padding: 1.2em 2.2em;
+    
+    border-radius:0.3em;
+    background-color: #fefefe;
+    border: 1px solid #888;
+}
+input{
+  outline: none;
+  font-size:inherit;
+  width:70%;
+  border-radius:0.2em;
+  border:1px solid grey;
+  -moz-appearance:textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input:focus{
+  border:1px solid #66a5dd;
+}
+lable{
+  display:inline-block;
+  width:28%;
+}
+.head{
+  font-size:130%;
+  margin:0.5em;
+  text-align:center;
+  color:#3a3a3a;
+}
+.mod{
+  cursor:pointer;
+  font-size:inherit;
+  margin-left:0.5em;
+  width:4.5em;
+  outline:none;
+  border:none;
+  padding:0.4em;
+  color:white;
+  border-radius:0.2em;
+  background-color:#6EAEE4;
+}
+.mod:hover,.mod:active{
+  background-color:#5fa5e2;
+}
+.ctrl{
+  padding:0.3em;
+  margin:0.5em;
+  width:100%;
+  font-size:14px;
+}
+
+html,body{
+  font-family:Arial;
+  font-size:2vh;
+  color:#484848;
+}
+.container{
+  margin:auto;
+  width:400px;
+}
+</style>
+
+
+
+
+
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <p class="head">Customize </p>
+    <lable >Rows</lable><input type="number" id="r">
+    <lable >Colunms</lable><input id="c" type="number">
+    <p style="margin:0;color:#A9A9A9;font-size: 80%">* Enter dimensions between 2 and 20 </p>
+
+    <div style="margin-top:1em;text-align:right; ">
+      <button class="mod" onclick="cancel()">Cancel</button>
+      <button class="mod" onclick="apply()">Apply</button>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="container" id="container">
+  <div style="width:100%;height:80;background-color: #c1c1c1;border:1px solid black;display: flex;align-items: center;"> 
+    <button class="ctrl" onclick="opModal()" id="customize" >Customize</button>
+    <button class="ctrl" onclick="start()" id="start">Start</button>
+    <button class="ctrl" onclick="newGame()" >New Game</button>
+  </div>
+  <canvas id="gc" width="400" height="400" style="margin:0px" onclick="leftClick(event)" 
+  oncontextmenu="rightClick(event)">
+  </canvas>
+</div>
+
+<script>
+//global const
+var tileSize=40;
+var numRow=5;
+var numCol=5;
+var F="#6767f1";
+var O="#f2db68";
+
+
+var totalTile;
+var ar;
+
+var play;
+var initing;
+var r,c;
+var numOff;
+
+
+class cell{
+  constructor(r,c){
+    this.on=true;
+    this.r=r;
+    this.c=c;
+  }
+  turn(){
+    this.on^=true;
+    if(this.on){
+      numOff--;
+      ctx.fillStyle=O;
+      ctx.fillRect(this.c*tileSize+1,this.r*tileSize+1,tileSize-2,tileSize-2);
+    }
+    else{
+      numOff++;
+      ctx.fillStyle=F;
+      ctx.fillRect(this.c*tileSize+1,this.r*tileSize+1,tileSize-2,tileSize-2);
+      if(numOff==totalTile){
+        play=false;
+        drawText("You Won");
+      }      
+    } 
+    
+  }
+  switch(){
+    this.turn();
+    if(this.r+1<numRow)ar[this.r+1][this.c].turn();
+    if(this.r>0)ar[this.r-1][this.c].turn();
+    if(this.c+1<numCol)ar[this.r][this.c+1].turn();
+    if(this.c>0)ar[this.r][this.c-1].turn();
+  }
+}
+function drawText(msg){
+  play=false;
+  ctx.font="28px Arial";
+  ctx.fillStyle= "white";
+  ctx.fillText(msg, (canv.width / 2)-60, (canv.height / 2)+20);
+}
+window.onload=function() {
+    canv=document.getElementById("gc");
+    ctx=canv.getContext("2d");
+    
+    newGrid();
+}
+function newGrid(){
+  totalTile=numRow*numCol;
+  tileSize=canv.width/numCol;
+  canv.height=numRow*tileSize;
+
+  ar=[];
+  for(let y = 0; y < numRow; y++){
+    ar[y] = [];    
+    for(let x = 0; x < numCol; x++){ 
+        ar[y][x] = new cell(y,x);  
+    }    
+  }
+  init();
+}
+function init(){
+  
+
+  play=true;
+  initing=true;
+  numOff=0;
+
+
+  ctx.fillStyle=O;
+  ctx.fillRect(0,0,canv.width,canv.height);
+  ctx.strokeStyle="#a5a5ff";
+  for (let x = 0; x < numCol; x++){
+    for(let y=0;y<numRow;y++){
+      ctx.strokeRect(x*tileSize,y*tileSize,tileSize,tileSize);      
+    }     
+  }
+}
+function start(){
+  initing=false;
+  sBtn.disabled=true;
+  cBtn.disabled=true;
+}
+function newGame(){
+  sBtn.disabled=false;
+  cBtn.disabled=false;
+  for(let y = 0; y < numRow; y++){   
+    for(let x = 0; x < numCol; x++){ 
+        ar[y][x].on=true;  
+    }    
+  }
+  init();
+}
+function leftClick(e) {
+  if(play){
+    var x = e.offsetX;
+    var y = e.offsetY;
+    r = Math.floor(y/tileSize);
+    c = Math.floor(x/tileSize);
+
+    if(initing){
+        ar[r][c].turn();      
+    }else{
+      ar[r][c].switch();
+    }
+  }
+}
+
+
+var modal = document.getElementById('myModal');
+var rowInp = document.getElementById('r');
+var colInp = document.getElementById('c');
+var cBtn = document.getElementById('customize')
+var sBtn = document.getElementById('start')
+
+function opModal() {
+  modal.style.display = "block";
+}
+function cancel(){
+  modal.style.display = "none";
+}
+function apply(){
+  let r=parseInt(rowInp.value);
+  let c=parseInt(colInp.value);
+  if(v(r)&&v(c)){
+    numRow=r;
+    numCol=c;
+    newGrid();
+
+    modal.style.display = "none";
+  }else{
+    //error msg
+  }
+
+}
+function v(n){
+  return (n && 2<=n && n<=20)  
+}
+window.onclick = function(event) { 
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>

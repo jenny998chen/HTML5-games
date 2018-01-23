@@ -1,0 +1,245 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0 user-scalable=0">
+<div style="width:100%">
+<div style="height:10vh;background-color: #c1c1c1;border:1px solid black;display: flex;
+align-items: center;"> 
+<p style="margin:auto ">000</p>
+<button style="padding:0.3em;margin:auto" onclick="init()">Restart</button>
+<p id="sec" style="margin:auto " >000</p>
+</div>
+<canvas id="gc" width="400" height="400" style="width:100%;margin:0px" onclick="leftClick(event)" 
+oncontextmenu="rightClick(event)">
+</canvas>
+</div>
+<style >
+html {
+	   -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+       -moz-user-select: none; /* Firefox */
+            user-select: none;
+        }
+</style>
+<script>
+//global const
+var offts;
+var tileSize=40;
+var numRow=10;
+var R="#e8e8e8";
+var U="#c1c1c1";
+var M="#ef6969";
+var F="#67a2ef";
+var totalMine=10;
+var totalTile=numRow*numRow;
+var colors=[,"#0100FE","#017F01","#FE0000","#010080","#810102","#008081","#000000","#808080"]
+var sLable=document.getElementById("sec");
+
+var timer;
+var ar;
+var firstClick;
+var play;
+var r,c;
+var totalRevealed;
+var mineArr=[];
+var debug=[];
+var s;
+
+window.onload=function() {
+    canv=document.getElementById("gc");
+    ctx=canv.getContext("2d");
+    offts=canv.offsetWidth/10;
+    
+    init();
+}
+function setTime(){
+	if(s<999){
+		s++;
+		let temp=('00'+s).slice(-3);
+		sLable.innerHTML=temp;
+		
+	}
+}
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+}
+function print(){
+	var count=0;
+	for(var y = 0; y < numRow; y++){
+	    debug[y] = [];    
+	    for(var x = 0; x < numRow; x++){ 
+	    	//state:unrevealed , revealed , flaged
+	        debug[y][x] = ar[y][x].state+''+ar[y][x].numMine;  
+	        count++;  
+	    }    
+	}
+	console.log(debug);
+}
+
+function rightClick(e){
+	e.preventDefault();
+	if(play&&firstClick){
+		var x = event.offsetX;
+	    var y = event.offsetY;
+	    r = Math.floor(y/offts);
+	    c = Math.floor(x/offts);
+
+		if(ar[r][c].state=='F'){
+			console.log(ctx.fillStyle)
+			ar[r][c].state='U';
+			ctx.fillStyle= U;
+			ctx.fillRect(c*tileSize+1,r*tileSize+1,tileSize-2,tileSize-2);
+			ctx.fillStyle= R;
+		}else if(ar[r][c].state=='U'){
+			ar[r][c].state='F';
+			ctx.fillStyle= F;
+			ctx.fillRect(c*tileSize+1,r*tileSize+1,tileSize-2,tileSize-2);
+			ctx.fillStyle= R;
+		}  
+	}
+}
+function leftClick(e) {
+	if(play){
+    var x = e.offsetX;
+    var y = e.offsetY;
+    r = Math.floor(y/offts);
+    c = Math.floor(x/offts);
+
+    if(!firstClick){
+    	timer=setInterval(setTime,1000);
+    	let ind=r * numRow + c;
+    	mineArr.splice( ind, 0, 0 );
+    	var count=0;
+    	//initialize if mine or no mine 
+    	for(var y = 0; y < numRow; y++){
+		    ar[y] = [];    
+		    for(var x = 0; x < numRow; x++){ 
+		    	//state:unrevealed , revealed , flaged
+		        ar[y][x] = {state:'U',numMine:mineArr[count]};  
+		        count++;  
+		    }    
+		}
+		//fill in num neighboor mine 
+		for(var y = 0; y < 10; y++){   
+		    for(var x = 0; x < 10; x++){ 
+		    	if(ar[y][x].numMine!=-1 ){
+			    	let mc=0;
+			    	if(y>0 && x>0 && ar[y-1][x-1].numMine==-1)mc++;
+			    	if(y>0 &&   ar[y-1][x].numMine==-1)mc++;
+			    	if(y>0 && x+1<numRow && ar[y-1][x+1].numMine==-1)mc++;
+			    	if( x>0 && ar[y][x-1].numMine==-1)mc++;
+			    	if( x+1<numRow && ar[y][x+1].numMine==-1)mc++;
+			    	if(y+1<numRow && x>0 && ar[y+1][x-1].numMine==-1)mc++;
+			    	if(y+1<numRow  && ar[y+1][x].numMine==-1)mc++;
+			    	if(y+1<numRow && x+1<numRow && ar[y+1][x+1].numMine==-1)mc++;
+			        ar[y][x].numMine=mc;  
+		        }
+		    }    
+		}
+		firstClick=true;
+		
+	}else{
+		//if a mine is clicked
+		if(ar[r][c].state!='F' && ar[r][c].numMine==-1){
+			for(var y = 0; y < numRow; y++){   
+			    for(var x = 0; x < numRow; x++){ 
+			    	ctx.fillStyle= M;
+			        if(ar[y][x].numMine==-1){
+			        	ar[y][x].state='R';
+			        	ctx.fillRect(x*tileSize+1,y*tileSize+1,tileSize-2,tileSize-2);
+			        }
+		    	}    
+			}
+			drawText("You Lost");
+		}
+	}
+	//if the block if unrevealed
+	//console.log(ar[r][c].state)
+	if(ar[r][c].state=='U'){
+		ar[r][c].state='R';
+		ctx.fillRect(c*tileSize+1,r*tileSize+1,tileSize-2,tileSize-2);
+		totalRevealed++;
+		
+		if(ar[r][c].numMine==0)reveal(r,c);
+		else{
+			ctx.fillStyle= colors[ar[r][c].numMine];
+		 	ctx.fillText(ar[r][c].numMine, c*tileSize+12, r*tileSize+29);
+		 	ctx.fillStyle= R;
+		 	
+		}
+		if(totalRevealed>=90){
+			drawText("You Win");
+		}
+		
+	}
+}
+}
+function reveal(r,c){
+	revealBlock(r-1,c-1);
+	revealBlock(r-1,c);
+	revealBlock(r-1,c+1);
+	revealBlock(r,c-1);
+	revealBlock(r,c+1);
+	revealBlock(r+1,c-1);
+	revealBlock(r+1,c);
+	revealBlock(r+1,c+1);
+}
+function revealBlock(r,c){
+	
+	if(r<numRow && c<numRow && (r+1)>0 && (c+1)>0 && ar[r][c].state!='R'){
+		if(ar[r][c].state!='F'){
+			ar[r][c].state='R';
+			totalRevealed++;
+			ctx.fillRect(c*tileSize+1,r*tileSize+1,tileSize-2,tileSize-2);
+		}
+		
+		if(ar[r][c].numMine==0) reveal(r,c);
+		else{
+			if(ar[r][c].state!='F'){
+				ctx.fillStyle= colors[ar[r][c].numMine];
+			 	ctx.fillText(ar[r][c].numMine, c*tileSize+12, r*tileSize+29);
+			 	ctx.fillStyle= R;
+			}
+			if(totalRevealed>=90){
+				drawText("You Win");
+			}
+		}
+	}
+}
+function drawText(msg){
+	play=false;
+	clearInterval(timer);
+	ctx.font = "36px Arial";
+	ctx.fillStyle= "white";
+ 	ctx.fillText(msg, (canv.width / 2)-76, (canv.height / 2)+20);
+}
+
+function init(){
+	ar=[];
+	mineArr.length=99;
+	totalRevealed=0;
+	s=0;
+	sLable.innerHTML='000';
+
+	ctx.fillStyle= U;
+    ctx.fillRect(0,0,canv.width,canv.height);
+    ctx.fillStyle= R;
+    ctx.font="28px Arial";
+
+    for (var x = 0; x < numRow; x++) {
+    	for(var y=0;y<numRow;y++){
+    		ctx.strokeRect(x*tileSize,y*tileSize,tileSize,tileSize);
+    		
+    	}    	
+    }
+	for(i=0;i<totalMine;i++)mineArr[i]=-1;
+	for(i=totalMine;i<totalTile-1;i++)mineArr[i]=0;
+	shuffle(mineArr);
+
+	firstClick=false;
+	play=true;
+}
+
+</script>
+<br>
+<!-- <input type="button" value=" Restart " onclick="restart()"> -->

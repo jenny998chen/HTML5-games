@@ -1,0 +1,201 @@
+<style>
+.ctrl{
+  padding:0.6em;
+  margin:0.5em;
+  width:100%;
+  font-size:26px;
+  color:white;
+  background-color:#FEDD92;
+}
+
+html,body{
+  font-family:Arial;
+  font-size:2vh;
+  background-color:#FFE3A4;
+}
+
+</style>
+
+  <div style="margin:auto;width:760;height:80;display: flex;align-items: center;"> 
+    <button class="ctrl" onclick="undo()" id="start">Undo</button>
+    <button class="ctrl" onclick="newGame()" >New Game</button>
+  </div>
+  <div style="margin:auto;width:800px;">
+
+  <canvas id="gc" width="800" height="800" style="position:fixed;z-index: 11;" 
+  onclick="leftClick(event)" > </canvas>
+  <canvas id="over" width="800" height="800" style="z-index: 10;" 
+  onclick="leftClick(event)" > </canvas>
+
+  </div>
+<script>
+//global const
+var tileSize=40;
+var numRow=19;
+var numCol=19;
+var O="#FFE3A4";
+
+var ar;
+var play;
+var r,c;
+var numPiece;
+var undoArr;
+class cell{
+  constructor(r,c){
+    this.color="N";
+    this.r=r;
+    this.c=c;
+  }
+  draw(color){
+    this.color=color;
+    if(color=='B')ctx.fillStyle = 'black';
+    else ctx.fillStyle = 'white';
+
+    ctx.beginPath();
+    ctx.arc(this.c*tileSize + tileSize/2, this.r*tileSize + tileSize/2,
+    tileSize*0.4, 0, 2 * Math.PI);
+    ctx.fill();
+
+    undoArr.push([r,c])
+    this.checkWin();
+  }
+  checkWin(){
+    //calc horizonal bounds
+    let hstart=this.c-4;;
+    if(this.c<5) hstart=0;
+    let hend=this.c+4;
+    if((this.c+5)>numCol)hend=numCol-1;
+    //calc vertical bounds
+    let vstart=this.r-4;;
+    if(this.r<5) vstart=0;
+    let vend=this.r+4;
+    if((this.r+5)>numRow)vend=numRow-1;
+
+
+ 
+    let count=1;
+    for(let i=this.c+1;i<=hend;i++){
+      if(ar[this.r][i].color==this.color)count++;
+      else break;
+    }
+    for(let i=this.c-1;i>=hstart;i--){
+      if(ar[this.r][i].color==this.color)count++;
+      else break;
+    }
+    if(count>=5)this.drawText();
+    //vertical
+    count=1;
+    for(let i=this.r+1;i<=vend;i++){
+      if(ar[i][this.c].color==this.color)count++;
+      else break;
+    }
+    for(let i=this.r-1;i>=vstart;i--){
+      if(ar[i][this.c].color==this.color)count++;
+      else break;
+    }
+    if(count>=5)this.drawText();
+    //diagonal 
+    count=1;
+    for(let i=this.c+1,j=this.r+1;(i<=hend &&j<=vend);i++,j++){
+      if(ar[j][i].color==this.color)count++;
+      else break;
+    }
+    for(let i=this.c-1,j=this.r-1;(i>=hstart && j>=vstart);i--,j--){
+      if(ar[j][i].color==this.color)count++;
+      else break;
+    }
+    if(count>=5)this.drawText();
+    //negative diagonal
+    count=1;
+    for(let i=this.c-1,j=this.r+1;(i>=hstart &&j<=vend);i--,j++){
+      if(ar[j][i].color==this.color)count++;
+      else break;
+    }
+    for(let i=this.c+1,j=this.r-1;(i<=hend && j>=vstart);i++,j--){
+      if(ar[j][i].color==this.color)count++;
+      else break;
+    }
+    if(count>=5)this.drawText();
+  }
+
+  drawText(){
+    play=false;
+
+    var text;
+    if(this.color=='W')text="White"
+    else text="Black"
+    
+    ctx.fillStyle= "white";
+    ctx.strokeStyle="grey";
+    ctx.fillText(text+" Won", (canv.width / 2)-114, (canv.height / 2)-2);
+    ctx.strokeText(text+" Won", (canv.width / 2)-114, (canv.height / 2)-2);
+  }
+}
+
+window.onload=function() {
+    canv=document.getElementById("gc");
+    ctx=canv.getContext("2d");
+    canv2=document.getElementById("over");
+    ctx2=canv2.getContext("2d");
+
+    tileSize=canv.width/numCol;
+    canv.height=numRow*tileSize;
+    console.log(numCol);
+    console.log(tileSize);
+    ar=[];
+    for(let y = 0; y < numRow; y++){
+      ar[y] = [];    
+      for(let x = 0; x < numCol; x++){ 
+          ar[y][x] = new cell(y,x);  
+      }    
+    }
+    ctx.font="52px Arial";
+
+    ctx2.fillStyle=O;
+    ctx2.fillRect(0,0,canv.width,canv.height);
+    for (let x = 0; x < numCol-1; x++){
+      for(let y=0; y < numRow-1;y++){
+        ctx2.strokeRect(x*tileSize + tileSize/2,y*tileSize + tileSize/2,
+        tileSize,tileSize);      
+      }     
+    }
+    init();
+}
+
+function init(){
+  undoArr=[];
+  numPiece=0;
+  play=true; 
+}
+function newGame(){
+  ctx.clearRect(0,0,canv.width,canv.height);
+  for(let y = 0; y < numRow; y++){   
+    for(let x = 0; x < numCol; x++){ 
+        ar[y][x].color='N';  
+    }    
+  }
+  init();
+}
+function leftClick(e) {
+  if(play){
+    var x = e.offsetX;
+    var y = e.offsetY;
+    r = Math.floor(y/tileSize);
+    c = Math.floor(x/tileSize);
+    if(ar[r][c].color=='N'){
+      numPiece++;
+      if(numPiece % 2)ar[r][c].draw('B');
+      else ar[r][c].draw('W');
+    }
+  }
+}
+function undo(){
+  if(undoArr.length > 0 && play){
+    var pos = undoArr.pop();
+    ar[pos[0]][pos[1]].color='N';
+    numPiece--;
+    ctx.clearRect(pos[1]*tileSize,pos[0]*tileSize,tileSize,tileSize); 
+  } 
+}
+
+</script>

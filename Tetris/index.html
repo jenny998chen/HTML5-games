@@ -1,0 +1,431 @@
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0 user-scalable=0">
+
+ <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">-->
+  <title>Simple Tetris</title>
+<script>
+var myTimer;
+w=0;h=0;
+x=3;y=0;
+
+count=0;
+rand=0;
+lineCount=0;
+
+play=false;
+gameStarted=false;
+
+bgc="#efefef";
+colors=["#cb9ae0","#ad6dc6","#5d9be2","#58D68D","#F6DD61","#f46b66",
+		"#ef9c6b","#e56788"];
+shapes=[[[0,1,0],[1,1,1]],[[2,2,0],[0,2,2]],
+[[0,3,3],[3,3,0]],[[4,0,0],[4,4,4]],
+[[0,0,5],[5,5,5]],[[6,6,6,6]],[[7,7],[7,7]]];
+const gapList=[[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],
+				[0,1,0,0],[0,2,0,1],[0,0,0,0]];
+curShape=[];
+curGaps=[];
+matrix=[];
+arrow="";
+window.onload=function() {
+    if(!(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ) {
+   document.getElementById('foot').style.display="none";
+  }
+    canv=document.getElementById("gc");
+    ctx=canv.getContext("2d");
+    document.addEventListener("keydown",keyPush);
+    ctx.lineWidth=0.5; 	
+    drawBackground();
+ 
+}
+function newGame(){
+	if(!gameStarted || !play){
+   	 myTimer = setInterval(game,400);
+   	 play=true;
+   	 gameStarted=true;
+	}
+	for ( var i = 0; i < 16; i++ ) {
+	    matrix[i] = [0,0,0,0,0,0,0,0,0,0]; 
+	}
+	matrix.push([1,1,1,1,1,1,1,1,1,1]);
+
+	count=0;lineCount=0;
+	document.getElementById("b").innerHTML=count;
+	document.getElementById("l").innerHTML=lineCount;
+
+	createShape();
+	draw();		
+}
+function pause(){
+	if(play && gameStarted){
+		clearInterval(myTimer);
+		play=false;
+	}
+}
+function resume(){
+	if(!play && gameStarted){
+		myTimer = setInterval(game,600);
+		play=true;
+	}
+}
+function drawBackground(){
+	ctx.fillStyle= bgc;
+    ctx.fillRect(0,0,canv.width,canv.height);
+    for (var i = 0; i < 10; i++) {
+    	for(var j=0;j<16;j++){
+    		ctx.strokeRect(i*40,j*40,40,40);
+    	}    	
+    }
+}
+function draw(){
+	//background
+	ctx.fillStyle= bgc;
+    ctx.fillRect(0,0,canv.width,canv.height);
+	
+    for ( var i = 0; i < 16; i++ ) {
+    	for( var j = 0; j < 10; j++ ){
+	    if(matrix[i][j]!=0){
+	    	ctx.fillStyle= colors[matrix[i][j]];
+	    	ctx.fillRect(j*40,i*40,40,40);
+	    }
+	}
+	}
+	//block
+    ctx.fillStyle= colors[rand+1];
+    curX=x+curGaps[0];
+    curY=y+curGaps[3];
+    for (var r = 0; r < h; r++) {
+    	for(var c=0;c < w;c++){
+    		if(curShape[r][c]!=0)ctx.fillRect((curX+c)*40,(curY+r)*40,40,40);
+    	}   	
+    }
+    //grid
+    for (var i = 0; i < 10; i++) {
+    	for(var j=0;j<16;j++){
+    		ctx.strokeRect(i*40,j*40,40,40);
+    	}    	
+    }
+    //message
+    if(!gameStarted){
+    	ctx.fillStyle = "white";
+		ctx.font = "bold 36px Arial";
+		//ctx.lineWidth=1; 	
+		ctx.strokeText("You Lost", (canv.width / 2)-98, (canv.height / 2)-10);
+		ctx.fillText("You Lost", (canv.width / 2)-98, (canv.height / 2)-10);	
+    }
+}
+function checkLeftRight(dir){
+	for (var r = 0; r < h; r++) {
+	    	for(var c=0;c<w;c++){
+	    		if(curShape[r][c]!=0 && matrix[curY+r][curX+c+dir]!=0){
+	    			return false;
+	    		}
+	    	}
+    }
+    return true;
+}
+function rotate(){
+	var newM=[];
+	for (var c = 0; c < w; c++) {
+		var row=[];
+    	for(var r=h-1;r>=0;r--){
+    		row.push(curShape[r][c]);
+    	}
+    	newM[c]=row;
+    }
+    var tempW = newM[0].length;
+    var tempH = newM.length;
+    var tempX=x;
+    var tempY=y;
+
+	var tempGaps=curGaps.slice(0);
+	tempGaps.push(tempGaps.shift());
+	if((tempY+tempH)>16 || checkCollision()){
+		//console.log('upshift')
+		tempY-=curGaps[1];
+	}
+    else if(tempX<0 || !checkLeftRight(-1) ){
+    	//console.log('rightshift')
+    	tempX+=curGaps[0];
+
+    }
+	else if((tempX+tempW)>10 || !checkLeftRight(1)){
+		//console.log('leftshift')
+		tempX-=curGaps[2];
+	}
+		var rotatable=true;
+		for (var r = tempH-1; r >= 0; r--) {
+	    	for(var c=0;c<tempW;c++){
+	    		if(newM[r][c]!=0 && matrix[tempY+tempGaps[3]+r][tempX+tempGaps[0]+c]!=0){
+	    			rotatable=false;
+	    			break;
+	    		}
+	    	}
+    	}
+    	if(rotatable){
+    		x=tempX;
+    		y=tempY;
+    		w=tempW;
+    		h=tempH;
+    		curShape=newM;
+    		curGaps=tempGaps;
+    	}	
+    draw();
+}
+function createShape(){
+	x=3;y=0;
+    rand=count%7;
+    curShape=shapes[rand];
+    w=curShape[0].length;
+    h=curShape.length;
+    curGaps=gapList[rand].slice(0);
+}
+function checkCollision(){
+	for (var r = h-1; r >= 0; r--) {
+    	for(var c=0;c<w;c++){
+    		if(curShape[r][c]!=0 && matrix[curY+r+1][curX+c]!=0){
+    			return true;
+    		}
+    	}
+	}
+	return false;
+}
+
+function shapeDroped(){
+	for (var r = 0; r < h; r++) {
+    	for(var c=0;c<w;c++){
+    		if(curShape[r][c]!=0){
+    			matrix[curY+r][curX+c]=rand+1;
+    		}
+    	}
+	}
+	for (var r = 0; r < h; r++) {
+		var clear=true;
+		for (var j = 0; j<10; j++) {
+			if(matrix[curY+r][j]==0)clear=false;
+		}
+		if(clear){
+			matrix.splice(curY+r, 1);
+     		matrix.unshift([0,0,0,0,0,0,0,0,0,0]);
+     		lineCount++;
+     		document.getElementById("l").innerHTML=lineCount;
+		}
+	}
+	count++;
+	document.getElementById("b").innerHTML=count;
+}
+//main game loop
+function game() {   
+	y++;
+    if(checkCollision()){
+    	shapeDroped();
+    	createShape();
+    	draw();
+    	if(checkCollision()){
+			clearInterval(myTimer);
+			gameStarted=false;
+			play=false;
+    	}
+    }   
+    draw();   
+}
+
+function keyPush(evt) {
+	if(play){
+	    switch(evt.keyCode) {
+	        case 37:case 97://left
+	            if((x+curGaps[0])>0 && checkLeftRight(-1))x-=1;
+	            draw();
+	            break;
+	        case 38://up
+	          	rotate();
+	            break;
+	        case 39: case 51://right
+	         	if((x+w+curGaps[0])<10 && checkLeftRight(1))x+=1;
+	         	draw();
+	            break;
+	        case 40://down
+	        	if(!checkCollision())y++;
+	        	draw();
+	            break;
+	    }
+	}
+	if(evt.keyCode==80 && gameStarted){
+		if(play){
+			clearInterval(myTimer);
+		}else{
+			myTimer=setInterval(game,600);
+		}
+		play^=true;
+	}
+}
+screen.lockOrientation('portrait');
+function left(){
+  console.log('left')
+  if((x+curGaps[0])>0 && checkLeftRight(-1))x-=1;
+	 draw();
+}
+function up(){
+  console.log('up')
+  rotate();
+}
+function right(){
+  if((x+w+curGaps[0])<10 && checkLeftRight(1))x+=1;
+	 draw();
+}
+function down(){
+  if(!checkCollision())y++;
+	draw();
+}
+// function mup(){
+//   console.log('mup')
+// }
+// window.oncontextmenu = function(event) {
+//     event.preventDefault();
+//     event.stopPropagation();
+//     return false;
+// };
+
+</script>
+<style>
+
+.bt {
+  padding:0.3em 1em;
+  font-size:1em;
+  border:1px solid rgb(53, 109, 210);
+  background:transparent;
+  color:rgb(53, 109, 210);
+  border-radius:0.2em;
+  cursor:pointer;
+}
+.bt:hover{
+  transition:0.1s;
+  background:rgba(53, 109, 210,0.3);
+}
+.bt:active{
+  background:rgba(53, 109, 210,0.4);
+}
+*:focus{
+  outline: none;
+}
+
+
+
+html, body {
+  background-color: #B3E9B6;
+  margin:0;height:100%;font-size:2.7vw;
+     -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+       -moz-user-select: none; /* Firefox */
+            user-select: none;
+  
+}
+.wrapper {
+background-color: #B3E9B6;
+height:100vh;
+margin:auto;
+
+display:grid;
+grid-template-columns: 2fr 1fr;
+grid-template-rows: auto 34vw;
+grid-template-areas:
+"map sidebar"
+"footer footer ";
+}
+
+.map {
+grid-area: map;
+/*background-color: #ff0000;*/
+}
+
+.sidebar {
+  grid-area: sidebar;
+	color:grey;
+	font:1em Arial;
+	padding:1em;
+	/*background-color: #B3E9B6;*/
+}
+h3{
+	margin: 0.5em auto;
+	text-align: center;
+}
+.nextBlock{
+	margin:auto;
+	border-radius:0.2em;
+	background-color: white;
+	height: 8em;
+	width: 8em;
+}
+.info{
+	
+	margin:2.5em 0em;
+	
+}
+.info p{
+	padding:0.35em;
+  margin-top: 1em; 
+	border-radius:0.2em;
+	background-color: white;
+}
+
+
+.sidebar button{
+	margin-top: 1em; 
+	display: block;
+	width:100%;
+}
+
+.footer {
+grid-area: footer;
+/*background-color: #808080;*/
+font-size:2em;
+}
+.footer button{
+  /* padding:0.2em; */
+ width:4em;
+ margin:0em 0.1em; 
+}
+
+@media screen and (min-width:72vh){
+       .wrapper{ 
+         grid-template-rows:auto 25vh;
+       max-width:72vh;
+    }
+    html, body {font-size:2vh;}
+    
+}
+
+</style>
+</head>
+<body>
+	<div class="wrapper">
+<div class="map">
+<!-- <div id="board" style="background-color: green;height:100%; "> -->
+<canvas id="gc" width="400px" height="640px" style="max-height:100%;width:100%;background-color: #1d89f2;" >
+		</canvas>
+</div>
+  <div class="sidebar">
+    <h3>Next Block</h3>
+			<div class="nextBlock"></div>
+			<div class="info">
+				<p>Blocks dropped: <span id="b">0</span></p>
+				<p>Lines cleard: <span id="l">0</span></p>
+				<!-- <p>Current height: NaN <br>I'll code this later 😋&#xFE0E;</p> -->
+			</div>
+			<button class="bt" onclick="newGame()">New Game</button>
+			<button class="bt" onclick="pause()">Pause</button>
+			<button class="bt" onclick="resume()">Resume</button>
+			<!--<input  type="number">-->
+			<!--<input  >-->
+  </div>
+  <div class="footer" id="foot">
+    <button class="bt" onclick="up()"  style="margin:0.5em auto;display:block;">⌃</button>
+    <div style="text-align:center">
+      <button class="bt" onclick="left()"><</button>
+      <button class="bt" onclick="down()">⌄</button>
+      <button class="bt" onclick="right()">></button>
+    </div>
+  </div>
+</div>
+</body>
