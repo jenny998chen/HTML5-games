@@ -1,5 +1,33 @@
+<main>
 <canvas id="gc" width="800" height="400" style="border-radius:25px; " >
 </canvas>
+<div style="margin-top:0.8em;text-align:center; ">
+<button onclick="restart()">Restart</button>
+<button onclick="restart()">Clear</button>
+<button onclick="restart()">Save</button>
+<button onclick="restart()">Load</button>
+</div>
+</main>
+<style >
+main{
+    margin:3vh auto ;
+    width:800;
+}
+button{
+  cursor:pointer;
+  margin-left:0.5em;
+  width:8em;
+  outline:none;
+  border:none;
+  padding:0.4em;
+  color:white;
+  border-radius:0.2em;
+  background-color:#6EAEE4;
+}
+button:hover,button:active{
+  background-color:#458fd1;
+}
+</style>
 <script>
 px=50
 py=200;
@@ -149,8 +177,4 @@ function mouseMove(e) {
   }
 }
 
-</script><br>
-<input type="button" value="  Restart  " onclick="restart()">
-<input type="button" value="   clear   " onclick="clearS()">
-<input type="button" value="    Save    " onclick="save()">
-<input type="button" value="    load    " onclick="load()">
+</script>
